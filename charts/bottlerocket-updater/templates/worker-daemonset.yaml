@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "bottlerocket-updater.fullname" . }}-worker
+  labels:
+    {{- include "bottlerocket-updater.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "bottlerocket-updater.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        {{- include "bottlerocket-updater.labels" . | nindent 8 }}
+        app.kubernetes.io/component: worker
+    spec:
+      serviceAccountName: {{ include "bottlerocket-updater.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.worker.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.worker.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.worker.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: worker
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: RUN_MODE
+              value: worker
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: EXCLUDE_FROM_LB_WAIT_TIME_IN_SEC
+              value: {{ .Values.rollout.excludeFromLbWaitTimeInSec | quote }}
+            - name: WORKER_POLL_INTERVAL
+              value: {{ .Values.worker.pollInterval | quote }}
+            - name: DRAIN_TIMEOUT
+              value: {{ .Values.rollout.drainTimeout | quote }}
+            - name: POD_GRACE_PERIOD_SECONDS
+              value: {{ .Values.rollout.podGracePeriodSeconds | quote }}
+            - name: POST_REBOOT_GRACE_PERIOD
+              value: {{ .Values.rollout.postRebootGracePeriod | quote }}
+            - name: ROLLBACK_ON_FAILURE
+              value: {{ .Values.rollout.rollbackOnFailure | quote }}
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /run/api.sock
+              name: bottlerocket-api-socket
+            - mountPath: /bin/apiclient
+              name: bottlerocket-apiclient
+      volumes:
+        - name: bottlerocket-api-socket
+          hostPath:
+            path: /run/api.sock
+            type: Socket
+        - name: bottlerocket-apiclient
+          hostPath:
+            path: /bin/apiclient
+            type: File

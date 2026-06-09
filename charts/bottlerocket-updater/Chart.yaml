@@ -1,0 +1,6 @@
+apiVersion: v2
+name: bottlerocket-updater
+description: Controlled Bottlerocket in-place updater using apiclient and SSM Parameter Store
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

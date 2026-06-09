@@ -1,0 +1,62 @@
+image:
+  repository: public.ecr.aws/example/bottlerocket-updater
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+aws:
+  region: ""
+  parameterStore:
+    # Name of the SSM Parameter Store parameter that contains the desired Bottlerocket version.
+    # The parameter value should be an explicit Bottlerocket release such as "v1.60.0".
+    parameterName: ""
+
+schedule:
+  timeZone: UTC
+  updateWindowStart: "01:00"
+  rolloutStart: "02:30"
+  updateWindowEnd: "05:00"
+  minRemainingMinutes: 30
+
+rollout:
+  maxConcurrentUpdates: 1
+  excludeFromLbWaitTimeInSec: "0"
+  drainTimeout: "20m"
+  podGracePeriodSeconds: 60
+  postRebootGracePeriod: "20m"
+  rollbackOnFailure: true
+
+targetNodeLabelSelector: ""
+
+controller:
+  pollInterval: "30s"
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+worker:
+  pollInterval: "30s"
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+rbac:
+  create: true

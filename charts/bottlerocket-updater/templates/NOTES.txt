@@ -1,0 +1,10 @@
+The Bottlerocket updater has been installed.
+
+Controller:
+  kubectl logs deploy/{{ include "bottlerocket-updater.fullname" . }}-controller -n {{ .Release.Namespace }}
+
+Workers:
+  kubectl logs ds/{{ include "bottlerocket-updater.fullname" . }}-worker -n {{ .Release.Namespace }}
+
+Configured SSM parameter:
+  {{ .Values.aws.parameterStore.parameterName }}

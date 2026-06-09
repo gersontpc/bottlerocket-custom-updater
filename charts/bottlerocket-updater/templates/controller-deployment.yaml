@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "bottlerocket-updater.fullname" . }}-controller
+  labels:
+    {{- include "bottlerocket-updater.labels" . | nindent 4 }}
+    app.kubernetes.io/component: controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "bottlerocket-updater.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: controller
+  template:
+    metadata:
+      labels:
+        {{- include "bottlerocket-updater.labels" . | nindent 8 }}
+        app.kubernetes.io/component: controller
+    spec:
+      serviceAccountName: {{ include "bottlerocket-updater.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.controller.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.controller.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.controller.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: controller
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: RUN_MODE
+              value: controller
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: AWS_REGION
+              value: {{ .Values.aws.region | quote }}
+            - name: SSM_PARAMETER_NAME
+              value: {{ .Values.aws.parameterStore.parameterName | quote }}
+            - name: TIME_ZONE
+              value: {{ .Values.schedule.timeZone | quote }}
+            - name: UPDATE_WINDOW_START
+              value: {{ .Values.schedule.updateWindowStart | quote }}
+            - name: ROLLOUT_START
+              value: {{ .Values.schedule.rolloutStart | quote }}
+            - name: UPDATE_WINDOW_END
+              value: {{ .Values.schedule.updateWindowEnd | quote }}
+            - name: MIN_REMAINING_MINUTES
+              value: {{ .Values.schedule.minRemainingMinutes | quote }}
+            - name: MAX_CONCURRENT_UPDATES
+              value: {{ .Values.rollout.maxConcurrentUpdates | quote }}
+            - name: TARGET_NODE_LABEL_SELECTOR
+              value: {{ .Values.targetNodeLabelSelector | quote }}
+            - name: CONTROLLER_POLL_INTERVAL
+              value: {{ .Values.controller.pollInterval | quote }}
+          resources:
+            {{- toYaml .Values.controller.resources | nindent 12 }}
